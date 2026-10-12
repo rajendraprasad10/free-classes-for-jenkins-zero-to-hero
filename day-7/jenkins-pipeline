@@ -1,0 +1,373 @@
+Day-7 
+
+Core Pipeline Directives
+
+
+Environment:  
+
+	Defines global environment variables available across stages.
+
+
+	environment {
+	    DEPLOY_ENV = 'production'
+	    DOCKER_REGISTRY = 'registry.example.com'
+	}
+
+----------------------------------------------------------------------
+
+Parameters:
+
+	Allows user input when triggering a pipeline.
+
+
+	parameters {
+	    string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to build')
+	    booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run unit tests?')
+	}
+
+
+----------------------------------------------------------------------
+
+
+when: 
+
+	Conditional execution of stages.
+
+	
+	when {
+	    branch 'main'
+	}
+
+-----------------------------------------------------------------------
+
+
+input: 
+
+	Manual approval step.
+
+
+	input {
+	    message "Deploy to production?"
+	    ok "Yes, deploy"
+	}
+
+
+--------------------------------------------------------------------
+
+
+
+post: 
+
+	Actions after stage completion (success, failure, always).
+
+	post {
+	    success {
+	        echo 'Deployment succeeded!'
+	    }
+	    failure {
+	        echo 'Deployment failed!'
+	    }
+	    always {
+	        cleanWs()
+	    }
+	}
+
+
+----------------------------------------------------------------------
+
+
+options:
+
+	it Controls the pipeline behavior.
+
+
+	options {
+	    timeout(time: 5, unit: 'MINUTES')
+	    retry(2)
+	    buildDiscarder(logRotator(numToKeepStr: '10'))
+	}
+
+---------------------------------------------------------------------
+
+Branch-Based Deployment Conditions:
+
+
+	Deploy only from main branch:
+
+	groovy
+	when {
+	    branch 'main'
+	}
+
+
+---------------------------------------------------------------------
+
+
+Different environments per branch:
+
+
+	stages {
+	    stage('Deploy') {
+	        when {
+	            anyOf {
+	                branch 'develop'
+	                branch 'release/*'
+	            }
+	        }
+	        steps {
+	            script {
+	                if (env.BRANCH_NAME == 'develop') {
+	                    sh './deploy.sh staging'
+	                } else {
+	                    sh './deploy.sh production'
+	                }
+	            }
+	        }
+	    }
+	}
+
+
+
+-----------------------------------------------------------------------
+
+Example 1: Simple Build & Test
+
+
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                sh 'pwd'
+            }
+        }
+        stage('Test') {
+            when {
+                expression { params.RUN_TESTS }
+            }
+            steps {
+                sh 'pwd'
+            }
+        }
+    }
+}
+
+
+--------------------------------------------------------------------
+
+Example 2: Branch-Based Deployment:
+
+
+	pipeline {
+	    agent any
+	    parameters {
+	        string(name: 'DEPLOY_ENV', defaultValue: 'staging', description: 'Environment')
+	    }
+	    stages {
+	        stage('Deploy') {
+	            when {
+	                branch 'main'
+	            }
+	            steps {
+	                sh "./deploy.sh ${params.DEPLOY_ENV}"
+	            }
+	        }
+	    }
+	    post {
+	        always {
+	            cleanWs()
+	        }
+	    }
+	}
+
+
+----------------------------------------------------------------
+
+
+Example 3: Manual Approval Before Production
+
+	pipeline {
+	    agent any
+	    stages {
+	        stage('Build') {
+	            steps {
+	                sh 'npm install && npm run build'
+	            }
+	        }
+	        stage('Approval') {
+	            when {
+	                branch 'main'
+	            }
+	            steps {
+	                input {
+	                    message "Deploy to production?"
+	                    ok "Deploy"
+	                }
+	            }
+	        }
+	        stage('Deploy') {
+	            when {
+	                branch 'main'
+	            }
+	            steps {
+	                sh './deploy.sh production'
+	            }
+	        }
+	    }
+	}
+
+
+Example 3: Manual Approval Before Production
+
+
+	pipeline {
+	    agent any
+	    stages {
+	        stage('Build') {
+	            steps { sh 'npm install && npm run build' }
+	        }
+	        stage('Approval') {
+	            when { branch 'main' }
+	            steps {
+	                input {
+	                    message "Deploy to production?"
+	                    ok "Deploy"
+	                }
+	            }
+	        }
+	        stage('Deploy') {
+	            when { branch 'main' }
+	            steps { sh './deploy.sh production' }
+	        }
+	    }
+	}
+
+
+
+Final Example with our code 
+
+
+pipeline {
+    agent any
+
+    parameters {
+        string(
+            name: 'BRANCH',
+            defaultValue: 'main',
+            description: 'Git branch to build'
+        )
+
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'staging', 'production'],
+            description: 'Select deployment environment'
+        )
+
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run application tests'
+        )
+    }
+
+    environment {
+        APP_NAME = 'cicd-demo'
+        VERSION = "1.0.${BUILD_NUMBER}"
+        DEPLOY_SERVER = 'your-server.example.com'
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        retry(2)
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo "Checking out branch: ${params.BRANCH}"
+                git branch: "${params.BRANCH}", 
+                    credentialsId: 'github-creds', 
+                    url: 'https://github.com/rajendraprasad10/cicd-demo.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Building ${env.APP_NAME}"
+                echo "Version: ${env.VERSION}"
+
+                sh '''
+                    echo "Starting build..."
+                    python3 --version
+                    echo "Build completed successfully"
+                '''
+            }
+        }
+
+        stage('Test') {
+            when {
+                expression { return params.RUN_TESTS }
+            }
+            steps {
+                echo "Running tests..."
+                sh '''
+                    echo "Executing tests..."
+                    # pytest tests/
+                    echo "Tests completed successfully"
+                '''
+            }
+        }
+
+        stage('Approval') {
+            when {
+                branch 'main'
+            }
+            steps {
+                input {
+                    message "Deploy to production?"
+                    ok "Deploy"
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'release/*'
+                    branch 'main'
+                }
+            }
+            steps {
+                echo "Deploying ${env.APP_NAME}"
+                echo "Environment: ${params.ENVIRONMENT}"
+
+                sh '''
+                    echo "Starting deployment..."
+                    echo "Application: $APP_NAME"
+                    echo "Version: $VERSION"
+                    echo "Deployment completed successfully"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline execution completed."
+            cleanWs()
+        }
+        success {
+            echo "SUCCESS: Application deployed successfully!"
+            echo "Environment: ${params.ENVIRONMENT}"
+        }
+        failure {
+            echo "FAILURE: Pipeline failed. Please check the console logs."
+        }
+        unstable {
+            echo "UNSTABLE: Pipeline completed, but there are test warnings/failures."
+        }
+    }
+}

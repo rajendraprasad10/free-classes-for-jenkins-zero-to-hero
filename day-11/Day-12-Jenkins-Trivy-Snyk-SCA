@@ -1,0 +1,469 @@
+Day 11 — Jenkins + Trivy / Snyk (SCA)
+
+
+
+Today’s focus is DevSecOps: integrating security scanning into a Jenkins CI/CD pipeline so vulnerabilities are detected before deployment.
+
+
+
+1. What is SCA?
+
+	SCA = Software Composition Analysis
+
+	Modern applications use many third-party dependencies.
+
+	For example:
+
+	FastAPI
+	   ↓
+	Starlette
+	   ↓
+	Any vulnerable dependency?
+
+SCA tools identify known vulnerabilities in:
+
+	Python packages
+	Node.js packages
+	Java dependencies
+	Docker images
+	Terraform files
+	Kubernetes manifests
+	etc.
+
+Examples:
+    today
+
+	Trivy
+	Snyk
+
+    projects 
+	OWASP Dependency-Check  -- java 
+
+
+-------------------------------------------------------------
+
+2. DevSecOps Pipeline
+
+Traditional pipeline:
+
+	Developer
+	    ↓
+	   Git
+	    ↓
+	Build
+	    ↓
+	Test
+	    ↓
+	Docker Build
+	    ↓
+	Deploy
+
+
+DevSecOps pipeline:
+
+	Developer
+	    ↓
+	   Git
+	    ↓
+	  SAST
+	    ↓
+	   SCA
+	    ↓
+	Secret Scan
+	    ↓
+	  Build
+	    ↓
+	Container Scan
+	    ↓
+	  Test
+	    ↓
+	Approval
+	    ↓
+	Deploy
+
+A practical Jenkins pipeline can look like:
+
+
+	Checkout
+	   ↓
+	Build
+	   ↓
+	Unit Test
+	   ↓
+	SonarQube
+	   ↓
+	Trivy FS Scan
+	   ↓
+	Docker Build
+	   ↓
+	Trivy Image Scan
+	   ↓
+	Snyk Scan
+	   ↓
+	Quality Gate
+	   ↓
+	Deploy
+
+
+-------------------------------------------------------------------
+
+3. Install Trivy
+
+On Ubuntu:
+
+	sudo apt-get update
+	sudo apt-get install -y wget apt-transport-https gnupg lsb-re
+
+
+Add the Trivy repository:
+
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+  | gpg --dearmor \
+  | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+
+
+echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] \
+https://aquasecurity.github.io/trivy-repo/deb \
+$(lsb_release -sc) main" \
+| sudo tee /etc/apt/sources.list.d/trivy.list
+
+
+Install:
+
+sudo apt-get update
+sudo apt-get install -y trivy
+
+
+trivy --version
+
+---------------------------------------------------------
+
+4. Trivy Filesystem Scan
+
+The simplest scan is:
+
+	trivy fs .
+
+This scans the current project directory.
+
+Example:
+
+	cd app
+
+	trivy fs .
+
+-------------------------------------------------------------------
+
+5. Scan Only HIGH and CRITICAL
+
+	In a CI/CD pipeline, you may want to focus on serious vulnerabilities:
+
+	trivy fs \
+	  --severity HIGH,CRITICAL \
+  .
+
+	This is useful for Jenkins security gates.
+
+-------------------------------------------------------------
+
+6. Fail the Build for CRITICAL Vulnerabilities
+
+	This is one of the most important concepts.
+
+Use:
+
+	trivy fs \
+	  --severity CRITICAL \
+	  --exit-code 1 \
+	  .
+
+What does --exit-code 1 do?
+
+If Trivy finds a matching vulnerability:
+
+	CRITICAL vulnerability found
+	        ↓
+	exit code = 1
+	        ↓
+	Jenkins detects failure
+	        ↓
+	BUILD FAILED
+
+
+If nothing is found:
+
+	No CRITICAL vulnerabilities
+	        ↓
+	exit code = 0
+	        ↓
+	Jenkins continues
+
+This turns security scanning into a quality/security gate.
+
+---------------------------------------------------------------
+
+
+7. Docker Image Scanning
+
+	First build your image:
+
+	docker build -t myapp:latest .
+
+Check:
+
+	docker images
+
+Then scan:
+
+	trivy image myapp:latest
+
+
+For HIGH and CRITICAL:
+
+	trivy image \
+	  --severity HIGH,CRITICAL \
+	  myapp:latest
+
+Fail the build for CRITICAL:
+
+	trivy image \
+	  --severity CRITICAL \
+	  --exit-code 1 \
+	  myapp:latest
+
+
+------------------------------------------------
+
+
+8. Severity Levels
+
+A common vulnerability classification is:
+
+Severity		Meaning
+
+UNKNOWN			Severity cannot be determined
+
+LOW				Low impact
+
+MEDIUM			Moderate risk
+
+HIGH			Significant risk
+
+CRITICAL		Very serious vulnerability
+
+In production, a common policy might be:
+
+LOW       	→ Inform
+MEDIUM    	→ Inform
+HIGH      	→ Review
+CRITICAL  	→ Fail pipeline
+
+------------------------------------------------------------------
+
+9. Jenkins + Trivy
+
+Example Jenkinsfile
+
+
+pipeline {
+
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh '''
+                    docker build -t myapp:${BUILD_NUMBER} .
+                '''
+            }
+        }
+
+        stage('Trivy Filesystem Scan') {
+            steps {
+                sh '''
+                    trivy fs \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 1 \
+                    .
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    trivy image \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 1 \
+                    myapp:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    pytest
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying application...'
+            }
+        }
+    }
+}
+
+----------------------------------------------------------
+
+
+10. Better Production Pipeline
+
+A more realistic pipeline:
+
+
+pipeline {
+
+    agent any
+
+    environment {
+        IMAGE_NAME = "myapp"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                sh '''
+                    pytest
+                '''
+            }
+        }
+
+        stage('Trivy FS Scan') {
+            steps {
+                sh '''
+                    trivy fs \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 1 \
+                    .
+                '''
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh '''
+                    docker build \
+                    -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
+            }
+        }
+
+        stage('Trivy Container Scan') {
+            steps {
+                sh '''
+                    trivy image \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 1 \
+                    ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+
+                    trivy image \
+                        --severity CRITICAL \
+                        --exit-code 1 \
+                        ${env.IMAGENAME}
+ 
+                '''
+
+                // trivy fs \
+                //     --severity HIGH,CRITICAL \
+                //     --exit-code 1 \
+                //     .
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh '''
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo "Deploying ${IMAGE_NAME}:${IMAGE_TAG}"
+            }
+        }
+    }
+}
+
+
+------------------------------------------------------------------
+
+11. Trivy Scan Flow
+
+Understand this flow clearly for interviews:
+
+
+             Source Code
+                  │
+                  ▼
+          ┌──────────────┐
+          │  trivy fs .  │
+          └──────┬───────┘
+                 │
+          Vulnerabilities?
+                 │
+          ┌──────┴──────┐
+          │             │
+         YES            NO
+          │             │
+          ▼             ▼
+       Fail/        Continue
+       Review
+                        │
+                        ▼
+                 Docker Build
+                        │
+                        ▼
+              ┌─────────────────┐
+              │ trivy image     │
+              │ myapp:latest    │
+              └────────┬────────┘
+                       │
+                 Security Gate
+                       │
+                       ▼
+                    Deploy

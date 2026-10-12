@@ -1,0 +1,597 @@
+Jenkins — Freestyle Jobs: Complete Hands-On
+
+
+For this lesson, build the following projects in order. This will take you from a basic Freestyle job to a small real-world CI workflow.
+
+
+1. Create a Git Job
+
+	Step 1 — Create the job
+
+	Go to:
+
+		Jenkins Dashboard → New Item → Freestyle project
+
+	Name:
+
+		git-checkout-demo
+
+	Click OK.
+
+
+Step 2 — Configure Git
+
+Go to:
+
+	Source Code Management → Git
+
+Enter your repository URL:
+
+	https://github.com/<username>/<repository>.git
+
+Select the branch:
+
+	*/main
+
+If the repository is private, add your Jenkins Git credentials.
+
+
+
+Step 3 — Add a Build Step
+
+Go to:
+
+	Build Steps → Add build step → Execute shell
+
+	echo "===== Git Checkout Demo ====="
+
+	echo "Job Name: $JOB_NAME"
+	echo "Build Number: $BUILD_NUMBER"
+
+	echo "Current directory:"
+	pwd
+
+	echo "Files from Git repository:"
+	ls -la
+
+Click Save → Build Now.
+
+
+
+Step 4 — Check Console Output
+
+Go to:
+
+Build #1 → Console Output
+
+Verify that Jenkins successfully checked out the repository.
+
+------------------------------------------------------------------
+===================================END==========================
+
+
+2. Create a Shell Script Job
+
+Create another:
+
+	New Item → Freestyle project
+
+Name:
+
+	shell-script-demo
+
+Go to:
+
+	Build Steps → Execute shell
+
+Add:
+
+	#!/bin/bash
+
+	echo "===== Shell Script Demo ====="
+
+	echo "Current User:"
+	whoami
+
+	echo "Hostname:"
+	hostname
+
+	echo "Current Directory:"
+	pwd
+
+	echo "Disk Usage:"
+	df -h
+
+	echo "Memory:"
+	free -h
+
+	echo "Shell script completed successfully."
+
+	Click Save → Build Now.
+
+Check:
+
+	Build → Console Output
+
+
+
+------------------------------------------------------------------
+===========================END=============================
+
+
+3. Create a Build Job
+
+Create:
+
+	application-build-demo
+
+Add Execute shell:
+
+	#!/bin/bash
+
+	echo "===== Application Build ====="
+
+	rm -rf build
+	mkdir -p build
+
+	echo "Building application..."
+
+	echo "Application Name: DemoApp" > build/build-info.txt
+	echo "Build Number: $BUILD_NUMBER" >> build/build-info.txt
+	echo "Build Date: $(date)" >> build/build-info.txt
+
+	cat build/build-info.txt
+
+	echo "Build completed successfully."
+
+	Run the build.
+
+You should now have:
+
+	workspace/
+	└── build/
+	    └── build-info.txt
+
+.....................................................
+
+
+4. Understand Build Steps
+
+A Freestyle project can contain multiple build steps.
+
+For example:
+
+	Build Step 1
+
+		echo "Installing dependencies..."
+
+	Build Step 2
+		echo "Running tests..."
+
+	Build Step 3
+		echo "Building application..."
+
+	mkdir -p build
+	echo "Build successful" > build/result.txt
+
+
+The flow becomes:
+
+	Checkout
+	   ↓
+	Install Dependencies
+	   ↓
+	Run Tests
+	   ↓
+	Build Application
+
+If an important command returns a non-zero exit code, Jenkins can mark the build as failed.
+
+
+For example:
+
+exit 1
+
+	will intentionally fail the build.
+----------------------------------------------------------
+
+5. Post-Build Actions — Archive Artifacts
+
+	Use your application-build-demo project.
+
+Go to:
+
+	Configure → Post-build Actions → Archive the artifacts
+
+Enter:
+
+	build/**
+
+	Save and build again.
+
+After the build:
+
+	Build # → Artifacts
+
+You should see:
+
+	build-info.txt
+	Understand the difference
+	Workspace
+	    ↓
+	Build creates files
+	    ↓
+	Post-build action
+	    ↓
+	Archive artifact
+
+	Workspace: working area used during the build.
+
+	Artifact: output that Jenkins preserves after the build.
+
+
+--------------------------------------------------------
+
+6. Parameters
+
+Create:
+
+	parameterized-build-demo
+
+Go to:
+
+	Configure → This project is parameterized
+
+Add:
+
+	String Parameter
+
+Name:
+
+	APP_NAME
+
+Default value:
+
+	myapp
+
+Add another:
+
+	ENVIRONMENT
+
+Default:
+
+	dev
+
+Add another:
+
+	VERSION
+
+Default:
+
+	1.0.0
+
+----------------------------------------------------------------
+
+7. Use Parameters in Shell
+
+Add:
+
+	Build Steps → Execute shell
+
+	#!/bin/bash
+
+	echo "===== Parameterized Build ====="
+
+	echo "Application : $APP_NAME"
+	echo "Environment : $ENVIRONMENT"
+	echo "Version     : $VERSION"
+	echo "Build Number: $BUILD_NUMBER"
+
+	Now instead of:
+
+	Build Now
+
+you will see:
+
+	Build with Parameters
+
+Example:
+
+	APP_NAME     = payment-service
+	ENVIRONMENT  = qa
+	VERSION      = 2.1.0
+
+Click Build.
+
+	Console output should show:
+
+	Application : payment-service
+	Environment : qa
+	Version     : 2.1.0
+
+
+8. Jenkins Environment Variables
+
+	Add another shell step:
+
+	echo "===== Jenkins Environment ====="
+
+	echo "JOB_NAME     = $JOB_NAME"
+	echo "BUILD_NUMBER = $BUILD_NUMBER"
+	echo "BUILD_ID     = $BUILD_ID"
+	echo "BUILD_URL    = $BUILD_URL"
+	echo "WORKSPACE    = $WORKSPACE"
+	echo "NODE_NAME    = $NODE_NAME"
+	echo "JENKINS_URL  = $JENKINS_URL"
+
+	To see all available environment variables:
+
+env
+
+	or:
+
+printenv
+
+
+
+9. Mini Project — Git → Build → Artifact
+
+Now combine everything.
+
+Create:
+
+	python-ci-freestyle
+
+Step 1 — Git
+
+Configure:
+
+	Source Code Management
+	        ↓
+	Git
+	        ↓
+	Repository URL
+	        ↓
+	*/main
+
+
+Step 2 — Build Step
+
+	#!/bin/bash
+
+	set -e
+
+	echo "===== Python CI Build ====="
+
+	python3 --version
+
+	echo "Installing dependencies..."
+
+	python3 -m venv env
+
+	source env/bin/activate
+
+	if [ -f requirements.txt ]; then
+	    pip3 install -r requirements.txt
+	fi
+
+	echo "Running tests..."
+
+	if command -v pytest >/dev/null 2>&1; then
+	    echo "pytest is installed"
+	else
+	    echo "pytest not installed"
+	fi
+
+	echo "Creating build directory..."
+
+	mkdir -p build
+
+	echo "Application: Python Application" > build/build-info.txt
+	echo "Build: $BUILD_NUMBER" >> build/build-info.txt
+	echo "Date: $(date)" >> build/build-info.txt
+
+	cat build/build-info.txt
+
+	echo "Build successful!"
+
+
+Step 3 — Archive Artifact
+
+Go to:
+
+
+	Post-build Actions → Archive the artifacts
+
+Enter:
+
+	build/**
+	Final flow
+	GitHub
+	   ↓
+	Jenkins Freestyle Job
+	   ↓
+	Git Checkout
+	   ↓
+	Install Dependencies
+	   ↓
+	Run Tests
+	   ↓
+	Build
+	   ↓
+	Create Artifact
+	   ↓
+	Archive Artifact
+
+
+10. Mini Project — Parameterized Environment Build
+
+Create:
+
+	environment-build-demo
+
+Parameters:
+
+	ENVIRONMENT
+	VERSION
+
+Example:
+
+	ENVIRONMENT = dev
+	VERSION     = 1.0.0
+
+Build step:
+
+	#!/bin/bash
+
+	echo "================================"
+	echo "        Application Build"
+	echo "================================"
+
+	echo "Environment : $ENVIRONMENT"
+	echo "Version     : $VERSION"
+	echo "Build       : $BUILD_NUMBER"
+
+	mkdir -p build
+
+	cat > build/deployment-info.txt <<EOF
+	Application: myapp
+	Environment: $ENVIRONMENT
+	Version: $VERSION
+	Build: $BUILD_NUMBER
+	Date: $(date)
+	EOF
+
+	cat build/deployment-info.txt
+
+	Archive:
+
+	build/**
+
+	Run it three times:
+
+	dev  → 1.0.0
+	qa   → 1.0.0
+	prod → 1.0.0
+
+	Compare the three builds.
+
+
+
+
+
+11. Mini Project — Server Health Check
+
+Create:
+
+	server-health-check
+
+Build step:
+
+	#!/bin/bash
+
+	echo "===== Server Health Check ====="
+
+	echo ""
+	echo "Hostname:"
+	hostname
+
+	echo ""
+	echo "CPU Load:"
+	uptime
+
+	echo ""
+	echo "Memory:"
+	free -h
+
+	echo ""
+	echo "Disk:"
+	df -h
+
+	echo ""
+	echo "Docker Containers:"
+	docker ps
+	
+	Make it fail when disk usage is high
+	USAGE=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
+
+	echo "Root filesystem usage: $USAGE%"
+
+	if [ "$USAGE" -gt 80 ]; then
+	    echo "ERROR: Disk usage is above 80%"
+	    exit 1
+	fi
+
+	echo "Disk usage is healthy."
+
+
+This is a great demonstration of:
+
+Jenkins SUCCESS vs FAILURE.
+
+
+12. Final Freestyle Mini Project
+
+For your YouTube class, I recommend ending the Freestyle section with this project:
+
+              GitHub
+                 ↓
+        Jenkins Freestyle
+                 ↓
+        Build Parameters
+                 ↓
+          Git Checkout
+                 ↓
+       Install Dependencies
+                 ↓
+            Run Tests
+                 ↓
+        Build Application
+                 ↓
+        Create build files
+                 ↓
+        Archive Artifacts
+                 ↓
+          Console Output
+
+
+Project name
+
+	complete-freestyle-ci
+
+Students should implement:
+
+Git checkout
+Parameters
+Environment variables
+Shell script
+Build steps
+Tests
+Artifact creation
+Post-build artifact archiving
+Build failure handling
+Console log inspection
+Build history
+
+
+Suggested Freestyle lesson sequence
+1. Hello Jenkins
+2. Git Checkout Job
+3. Shell Script Job
+4. Build Job
+5. Build Steps
+6. Post-Build Actions
+7. Artifacts
+8. Parameters
+9. Environment Variables
+10. Python CI Project
+11. Server Health Check
+12. Complete Freestyle CI Project
+13. Freestyle vs Pipeline
+14. Start Jenkins Pipeline / Jenkinsfile
+
+
+
+
+
+

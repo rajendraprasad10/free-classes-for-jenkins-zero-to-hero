@@ -1,0 +1,270 @@
+
+Controller vs Agent
+	
+	Controller (formerly Master)
+
+		Manages the Jenkins environment.
+
+		Handles job scheduling, monitoring, and orchestration.
+
+		Provides the web UI and stores build metadata.
+
+	Agent (formerly Slave)
+
+		Executes the actual build tasks.
+
+		Communicates with the controller to receive instructions.
+
+		Can run on different OS, hardware, or cloud environments.
+
+
+1. Controller–Agent Model
+
+The Jenkins Controller manages and orchestrates the CI/CD environment, while Jenkins Agents execute the actual build, test, and deployment tasks.
+                    Jenkins Controller
+                   ┌──────────────────┐
+                   │ • UI             │
+                   │ • Scheduling     │
+                   │ • Orchestration  │
+                   │ • Configuration  │
+                   └────────┬─────────┘
+                            │
+                 Assigns jobs based on
+                 labels & availability
+                            │
+          ┌─────────────────┼─────────────────┐
+          │                 │                 │
+          ▼                 ▼                 ▼
+     Linux Agent       Windows Agent      K8s Agent
+       Build 1            Build 2          Build 3
+       Test               Test             Deploy
+
+
+2. Responsibilities
+
+Controller:
+
+	Receives jobs from users/webhooks.
+	Schedules builds.
+	Selects suitable agents using labels.
+	Manages pipelines and Jenkins configuration.
+	Coordinates the overall CI/CD process.
+
+Agents:
+
+	Execute build commands.
+	Run automated tests.
+	Build Docker images.
+	Perform deployment tasks.
+	Provide isolated workspaces and required tools
+------------------------------------------------------------------
+
+🏗️ Master-Slave Architecture
+
+	Master-Slave (Controller-Agent) model distributes workload.
+
+	Controller assigns jobs to agents based on availability and labels.
+
+	Agents perform builds, tests, deployments, freeing the controller from heavy tasks.
+
+Improves scalability and reliability.
+
+🌍 Why Distributed Builds Are Required
+	
+	Scalability → Handle multiple builds simultaneously.
+
+	Platform diversity → Build/test across different OS or environments.
+
+	Resource optimization → Heavy builds offloaded to powerful agents.
+
+	Isolation → Prevent conflicts between builds.
+
+	High availability → If one agent fails, others can continue.
+
+------------------------------------------------------------------------
+
+🔑 SSH Agents
+
+	Agents connected via SSH protocol.
+
+	Controller uses SSH keys/credentials to launch builds remotely.
+
+	Common for Linux-based agents.
+
+	Flexible and secure for distributed environments.
+
+------------------------------------------------------------------------
+
+
+🏷️ Labels and Executors
+
+	Labels → Tags assigned to agents (e.g., linux, windows, docker).
+
+	Pipelines can target specific labels to run on matching agents.
+
+	Executors → Number of concurrent jobs an agent can run.
+
+	Configurable per agent.
+
+	Example: An agent with 4 executors can run 4 builds simultaneously.
+
+-----------------------------------------------------------------------
+
+📂 Workspace Management
+
+	Each agent has a workspace directory where builds run.
+
+	Workspaces are isolated per job to avoid conflicts.
+
+	Jenkins cleans or reuses workspaces depending on configuration.
+
+	Important for managing disk space and avoiding leftover artifacts.
+
+------------------------------------------------------------------
+
+Agent Selection in Pipelines
+
+Declarative pipeline syntax allows specifying agents:
+
+groovy
+
+pipeline {
+    agent { label 'linux' }   // Run on agents with 'linux' label
+    stages {
+        stage('Build') {
+            steps {
+                sh './gradlew build'
+            }
+        }
+    }
+}
+
+
+Options:
+
+	agent any → Runs on any available agent.
+
+	agent none → No global agent; stages define their own.
+
+	agent { docker 'image' } → Run inside a Docker container.
+
+	agent { label 'windows' } → Target specific labeled agents.
+
+
+
+-----------------------------------------------------------
+
+
+Practical  configure the Agent 
+
+
+Creating the Agent from Jenkins UI
+
+AWS steps : 
+	1. create a ec2 instance in aws 
+
+	2. allow 22 port in SG security group in aws 
+
+	3. create .pem key and download it. 
+
+	4. connect to instace from aws connect or from ssh linux machine or putty or any ssh agnet 
+
+	5. create a working dir Node1 
+
+	install java 
+
+	sudo dnf install java-21-amazon-corretto-devel -y
+
+Jenkins UI steps: 
+	
+	you can follow this notes as well as reference 
+
+	https://www.jenkins.io/doc/book/using/using-agents/
+
+	JenkinsDashboard --> manage jenkins --> manage nodes 
+
+	new node 
+
+		node1 
+
+		click on permanent agent 
+
+		click create 
+
+	Cofigure Node Settings: 
+
+		name: Node1 
+		Number of Executors: 2 
+		remote roor dir: /home/ec2-user/Node1
+
+		save 
+
+		give lable 
+
+		usage: 
+
+			use this node as much as possible 
+
+	Lauch method Configuration: 
+
+		Lauch agent via ssh
+
+		Host: instance public ip 
+
+		add cred ssh 
+
+		usename 
+
+		id 
+
+		pem key 
+
+		host verification mannuly 
+
+		save 
+
+
+
+
+
+
+
+error fix 
+
+Jenkins Agent need 1GB tmp dir space
+
+
+Because your EC2 instance runs Amazon Linux 2023, the system handles /tmp differently. By default, it allocates a virtual RAM disk (tmpfs) capped at 50% of your total RAM 
+
+Since you just grew your real hard drive to 30 GB, the absolute best and safest way to increase /tmp storage is to tell Amazon Linux to stop using your limited RAM and use your new disk space instead. This will give /tmp access to your 28 GB of free disk storage. 
+
+Run the following two commands in your terminal to safely switch it permanently: 
+
+optimizing-amazon-linux-2023-for-tiny-ec2-instances/)
+
+
+Step 1: Mask the systemd memory limitTell the operating system to disable the memory-bound RAM version of /tmp: 
+
+
+
+> sudo systemctl mask tmp.mount
+
+
+Step 2: Reboot the serverTo cleanly cut over all background processes (like your Jenkins agent) to the new disk-based storage, reboot the EC2 instance:
+
+> sudo reboot
+
+
+
+Step:3 
+
+Verify the Change 
+
+	df -h /tmp
+
+
+
+
+
+
+

@@ -1,0 +1,43 @@
+jenkins and github
+
+
+Github repo and jenkins integretion 
+
+
+1. Generate a Fresh Token in GitHub
+
+Go to GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic).
+
+Click Generate new token (classic).
+
+Check the repo scope box (critical for repository access).
+
+Click Generate token and copy it.
+
+--------------------------------------------------------
+
+2. Update the Credential in Jenkins
+
+
+Do not create a new credential; modify the existing one so your code doesn't have to change.
+
+Open Jenkins and go to Manage Jenkins → Credentials.
+
+Click on the Global domain.
+
+Find the credential ID you used (e.g., github-jenkins-token) and click the Update icon (pencil tool) on the right side.
+
+Keep your Username exactly as your GitHub username (githubuser id).
+
+Clear the Password field and paste your new GitHub Personal Access Token.
+
+Click Save
+
+
+
+generate simple code 
+
+
+git branch: 'main', 
+    credentialsId: 'github-jenkins-token', 
+    url: 'https://github.com/rajendraprasad10/cicd-demo.git'

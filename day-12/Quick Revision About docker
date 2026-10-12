@@ -1,0 +1,468 @@
+Quick Revision About docker  
+
+
+Jenkins user permissions fix while histting the docker ps 
+
+
+install docker in Ubuntu 
+
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
+
+
+
+# Add the Jenkins system user to the docker group
+sudo usermod -aG docker jenkins
+
+# Verify the user is in the group
+groups jenkins
+
+# Restart Jenkins service for changes to take effect
+sudo systemctl restart jenkins
+# OR
+sudo service jenkins restart
+
+# Check if it worked (as jenkins user)
+sudo -u jenkins docker ps
+
+
+
+
+-------------------------------------------------------
+
+
+
+What is Docker?
+
+	Containerization platform – packages apps and dependencies into isolated containers
+
+	Lightweight vs VMs (shares host OS kernel)
+
+	Ensures "works on my machine" consistency
+
+---------------------------------------------------
+
+Key Concepts:
+
+Concept				Description
+
+Image				Blueprint/template (read-only) with app + dependencies
+
+Container			Running instance of an image
+
+Dockerfile			Script to build an image
+
+Registry			Repository for images (e.g., Docker Hub)
+
+Volume				Persistent data storage outside container
+
+Network				Communication between containers
+
+
+-----------------------------------------------------------
+
+ Essential Commands
+
+Images
+
+
+docker build -t myapp:1.0 .          # Build image from Dockerfile
+docker images                         # List images
+docker rmi <image_id>                 # Remove image
+docker pull nginx:latest              # Pull from registry
+docker push myrepo/myapp:1.0          # Push to registry
+
+
+-----------------------------------------------------------------
+
+
+Containers
+
+
+docker run -d -p 8080:80 --name web nginx   # Run container (detached)
+docker ps                                    # List running containers
+docker ps -a                                 # List all containers
+docker stop <container>                      # Stop container
+docker start <container>                     # Start stopped container
+docker restart <container>                   # Restart
+docker rm <container>                        # Remove container
+docker exec -it <container> bash             # Enter running container
+docker logs <container>                      # View logs
+docker inspect <container>                   # Detailed info
+
+
+----------------------------------------------------------------
+
+
+Volumes
+
+
+docker volume create mydata                  # Create volume
+docker run -v mydata:/app/data ...           # Mount volume
+docker run -v $(pwd):/app ...                # Bind mount (host path)
+
+
+------------------------------------------------------------
+
+Networks
+
+
+docker network create mynet                  # Create network
+docker run --network mynet ...               # Attach container
+docker network ls                            # List networks
+
+-----------------------------------------------------
+
+
+Dockerfile Basics
+
+dockerfile
+
+	FROM node:18-alpine           # Base image
+	WORKDIR /app                  # Working directory
+	COPY package*.json ./         # Copy files
+	RUN npm install               # Install deps
+	COPY . .                      # Copy source
+	EXPOSE 3000                   # Document port
+	CMD ["npm", "start"]          # Run command
+
+
+Best practices:
+
+	Use alpine variants for smaller images
+
+	Combine RUN commands to reduce layers
+
+	Order layers from least to most frequently changing
+
+------------------------------------------------------------
+
+Docker Compose (Multi-container)
+
+docker-compose.yml:
+
+
+	version: '3.8'
+	services:
+	  web:
+	    build: .
+	    ports:
+	      - "8080:80"
+	    environment:
+	      - NODE_ENV=production
+	    depends_on:
+	      - db
+	    volumes:
+	      - ./data:/app/data
+	  
+	  db:
+	    image: postgres:15
+	    environment:
+	      POSTGRES_PASSWORD: secret
+	    volumes:
+	      - pgdata:/var/lib/postgresql/data
+
+	volumes:
+	  pgdata:
+
+
+============================================================
+
+
+# Docker Commands – Quick Revision
+
+## 1. Check Docker
+
+
+```bash
+docker --version
+docker info
+```
+
+## 2. Docker Images
+
+
+### List images
+
+```bash
+docker images
+```
+
+
+### Download image
+
+```bash
+docker pull nginx
+```
+
+
+### Build image
+
+```bash
+docker build -t myapp:1.0 .
+```
+
+
+### Remove image
+
+```bash
+docker rmi nginx
+```
+
+## 3. Docker Containers
+
+### Run container
+
+```bash
+docker run nginx
+```
+
+### Run in background
+
+```bash
+docker run -d nginx
+```
+
+### Run with port
+
+```bash
+docker run -d -p 8080:80 nginx
+```
+
+### List running containers
+
+```bash
+docker ps
+```
+
+### List all containers
+
+```bash
+docker ps -a
+```
+
+### Stop container
+
+```bash
+docker stop container_name
+```
+
+### Start container
+
+```bash
+docker start container_name
+```
+
+### Restart container
+
+```bash
+docker restart container_name
+```
+
+### Remove container
+
+```bash
+docker rm container_name
+```
+
+## 4. Docker Logs
+
+```bash
+docker logs container_name
+```
+
+Follow logs:
+
+```bash
+docker logs -f container_name
+```
+
+## 5. Enter Inside Container
+
+```bash
+docker exec -it container_name bash
+```
+
+For Alpine:
+
+```bash
+docker exec -it container_name sh
+```
+
+## 6. Inspect Container
+
+```bash
+docker inspect container_name
+```
+
+## 7. Docker Volumes
+
+List volumes:
+
+```bash
+docker volume ls
+```
+
+Create volume:
+
+```bash
+docker volume create myvolume
+```
+
+Use volume:
+
+```bash
+docker run -d \
+  -v myvolume:/data \
+  nginx
+```
+
+## 8. Docker Networks
+
+List networks:
+
+```bash
+docker network ls
+```
+
+Create network:
+
+```bash
+docker network create mynetwork
+```
+
+Run container with network:
+
+```bash
+docker run -d \
+  --network mynetwork \
+  nginx
+```
+
+## 9. Docker Compose
+
+Start:
+
+```bash
+docker compose up
+```
+
+Start in background:
+
+```bash
+docker compose up -d
+```
+
+Build and start:
+
+```bash
+docker compose up -d --build
+```
+
+Stop:
+
+```bash
+docker compose down
+```
+
+Check services:
+
+```bash
+docker compose ps
+```
+
+View logs:
+
+```bash
+docker compose logs -f
+```
+
+## 10. Docker Registry
+
+Login:
+
+```bash
+docker login
+```
+
+Tag image:
+
+```bash
+docker tag myapp:1.0 username/myapp:1.0
+```
+
+Push image:
+
+```bash
+docker push username/myapp:1.0
+```
+
+Pull image:
+
+```bash
+docker pull username/myapp:1.0
+```
+
+## 11. Cleanup
+
+Remove stopped containers:
+
+```bash
+docker container prune
+```
+
+Remove unused images:
+
+```bash
+docker image prune
+```
+
+Remove unused resources:
+
+```bash
+docker system prune
+```
+
+## Important Commands
+
+Remember these commands first:
+
+```text
+docker images
+docker ps
+docker ps -a
+docker pull
+docker build
+docker run
+docker stop
+docker start
+docker restart
+docker rm
+docker rmi
+docker logs
+docker exec
+docker inspect
+docker volume
+docker network
+docker compose up
+docker compose down
+```
+
+## Simple Docker Flow
+
+```text
+Dockerfile
+     ↓
+docker build
+     ↓
+Docker Image
+     ↓
+docker run
+     ↓
+Container
+     ↓
+docker ps
+     ↓
+docker logs / docker exec
+     ↓
+Troubleshooting
+```

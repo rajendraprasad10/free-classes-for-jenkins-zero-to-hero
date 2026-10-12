@@ -1,0 +1,76 @@
+Jenkins Installation process 
+
+
+
+Jenkins Installation using Docker 
+
+
+Prerequisites: 
+	
+	make sure follow this setup 
+	if your using the windows machine
+
+	configure wsl 
+
+	install linux if you do not have
+
+	install ubuntu if you do not have 
+
+-------------------------------------------
+1. install and start docker 
+
+	https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
+
+-------------------------------------------------------------
+
+2. Create Jenkins Docker volume
+
+	> docker volume create jenkins_home
+
+3. Start Jenkins container 
+
+	docker run -d \
+	  --name jenkins \
+	  -p 8080:8080 \
+	  -p 50000:50000 \
+	  -v jenkins_home:/var/jenkins_home \
+	  jenkins/jenkins:lts
+
+4. Check container
+
+	> docker ps 
+
+
+5. Check Jenkins logs
+
+	> docker logs -f jenkins
+
+6. Get the initial admin password
+
+	> docker exec jenkins \
+  		cat /var/jenkins_home/secrets/initialAdminPassword
+
+make sure 8080 port should be available 
+
+6. Open Jenkins
+
+	http://localhost:8080
+
+
+7. verify the Volume 
+
+	> docker volume inspect jenkins_home
+
+	you will see this 
+
+		/var/jenkins_home
+
+Use full commands 
+
+
+	docker stop jenkins
+	docker start jenkins
+	docker restart jenkins
+	docker logs jenkins
+	docker exec -it jenkins bash
+

@@ -1,0 +1,150 @@
+Docker in pipeline 
+
+
+
+install docker in Ubuntu 
+
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
+
+
+
+# Add the Jenkins system user to the docker group
+sudo usermod -aG docker jenkins
+
+# Verify the user is in the group
+groups jenkins
+
+# Restart Jenkins service for changes to take effect
+sudo systemctl restart jenkins
+# OR
+sudo service jenkins restart
+
+# Check if it worked (as jenkins user)
+sudo -u jenkins docker ps
+
+
+
+update the pipeline 
+
+with stages of docker build and scanning 
+
+
+ stage('Docker Image Build') {
+            steps {
+                script {
+                    def imageName = "906353/${env.APP_NAME}:${env.VERSION}"
+                    sh "docker build -t ${imageName} ."
+                    sh "docker images"
+                }
+            }
+        }
+
+stage('Trivy Image Scan') {
+            steps {
+
+                echo "Docker image scanning"
+                
+                sh "trivy image --severity HIGH,CRITICAL 906353/${env.APP_NAME}:${env.VERSION}"
+
+            }
+        }
+
+
+docker build → builds the image from your Dockerfile.
+
+Tagging with ${env.BUILD_NUMBER} ensures each build has a unique version.
+
+
+Then scan:
+
+	trivy image myapp:latest
+
+
+For HIGH and CRITICAL:
+
+	trivy image \
+	  --severity HIGH,CRITICAL \
+	  myapp:latest
+
+Fail the build for CRITICAL:
+
+	trivy image \
+	  --severity CRITICAL \
+	  --exit-code 1 \
+	  myapp:latest
+
+
+
+8. Severity Levels
+
+A common vulnerability classification is:
+
+Severity		Meaning
+
+UNKNOWN			Severity cannot be determined
+
+LOW				Low impact
+
+MEDIUM			Moderate risk
+
+HIGH			Significant risk
+
+CRITICAL		Very serious vulnerability
+
+In production, a common policy might be:
+
+LOW       	→ Inform
+MEDIUM    	→ Inform
+HIGH      	→ Review
+CRITICAL  	→ Fail pipeline
+
+
+
+stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    trivy image \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 1 \
+                    myapp:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+
+
+11. Trivy Scan Flow
+
+Understand this flow clearly for interviews:
+
+
+             Source Code
+                  │
+                  ▼
+          ┌──────────────┐
+          │  trivy fs .  │
+          └──────┬───────┘
+                 │
+          Vulnerabilities?
+                 │
+          ┌──────┴──────┐
+          │             │
+         YES            NO
+          │             │
+          ▼             ▼
+       Fail/        Continue
+       Review
+                        │
+                        ▼
+                 Docker Build
+                        │
+                        ▼
+              ┌─────────────────┐
+              │ trivy image     │
+              │ myapp:latest    │
+              └────────┬────────┘
+                       │
+                 Security Gate
+                       │
+                       ▼
+                    Deploy

@@ -1,0 +1,172 @@
+Day 10 — Jenkins and SonarQube Code Quality in CI CD
+
+
+1. Why Code Quality in CI/CD?
+
+	Code quality is crucial in CI/CD pipelines because:
+
+	Shift-left testing: Catch issues early in development
+
+	Automated enforcement: Prevent bad code from reaching production
+
+	Technical debt reduction: Address issues incrementally
+
+	Team standards: Ensure consistency across developers
+
+	Security: Identify vulnerabilities before deployment
+
+
+
+2. SonarQube Overview
+
+What is SonarQube?
+
+	An open-source platform for continuous inspection of code quality
+
+Key Features:
+
+	Static code analysis for 30+ languages
+
+	Real-time feedback on code quality
+
+	Track technical debt over time
+
+	Pull request analysis (in commercial versions)
+
+
+SonarQube Architecture:
+
+[Source Code] → [SonarScanner] → [SonarQube Server] → [Dashboard/Reports]
+
+
+What is SonarScanner?
+
+A client application that analyzes code and sends data to SonarQube
+
+Common Usage:
+
+
+# Using sonar-scanner CLI
+
+sonar-scanner \
+  -Dsonar.projectKey=my_project \
+  -Dsonar.sources=. \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.login=myauthenticationtoken
+
+
+4. Key Quality Metrics
+
+
+Definition: Coding errors that will break code
+
+Example: Null pointer dereference, infinite loops
+
+Severity levels: Blocker, Critical, Major, Minor, Info
+
+----------------------------------------------------------
+
+Vulnerabilities
+
+Definition: Security weaknesses that can be exploited
+
+Example: SQL injection, hardcoded passwords, XSS
+
+OWASP Top 10: Most common vulnerabilities tracked
+
+---------------------------------------------------------------------
+
+Code Smells
+
+Definition: Maintainability issues (not bugs, but problematic)
+
+Example: Duplicated code, overly complex methods, long classes
+
+Impact: Increases technical debt
+
+
+-----------------------------------------------------------------
+
+
+Test Coverage
+
+Definition: Percentage of code covered by tests
+
+Metrics:
+
+Line coverage
+
+Branch coverage
+
+Condition coverage
+
+
+--------------------------------------------------------------
+
+Duplications
+
+Definition: Duplicated code blocks
+
+Threshold: Usually >3% duplicate code is problematic
+
+
+---------------------------------------------------------------
+
+
+Technical Debt
+
+
+Definition: Estimated time to fix all issues
+
+Formula: Technical Debt = (Remediation cost × Issues)
+
+
+
+----------------------------------------------------------------
+
+
+5. Quality Gates
+
+What are Quality Gates?
+
+	Predefined criteria that code must meet to pass quality standards
+
+Built-in Quality Gates:
+
+	SonarQube way: Default gate with balanced metrics
+
+	SonarQube way (latest): Updated version
+
+	Security-focused: Higher security standards
+
+
+----------------------------------------------------------------------
+
+Common Quality Gate Conditions:
+
+
+# Example Quality Gate Conditions
+
+- Bugs:
+    New Bugs: 0
+    Overall Bugs: < 10
+
+- Vulnerabilities:
+    New Vulnerabilities: 0
+    Overall Vulnerabilities: < 5
+
+- Code Coverage:
+    New Coverage: > 80%
+    Overall Coverage: > 70%
+
+- Duplications:
+    New Duplications: < 3%
+    Overall Duplications: < 5%
+
+- Code Smells:
+    New Code Smells: < 10
+    Overall Code Smells: < 100
+
+- Security Rating: A or B
+
+- Maintainability Rating: A or B

@@ -1,0 +1,82 @@
+day-13 
+
+
+CICD devsecops pipeline desing 
+
+steps you add and focus in the project
+
+1. 
+2. 
+3. 
+
+
+
+branching strategy 
+	feature branch unit test must
+	dev unit and integrations tests 	
+	stage unit and integration not required, promote stage
+	|
+Developer     
+   ↓
+Git Push / Pull Request   main tain github
+   ↓
+1. Source Control
+   ↓
+2. CI Trigger  continus CI pipeline triger in jenkins
+	webhook for every push in feature branch 
+	if branch feature then run the pipeline till Unittest code coverage
+   ↓
+3. Code Quality  lining / 
+	add code quality checks in first level 
+   ↓
+4. Security Scanning 
+	file system scanning
+   ├── SAST
+   ├── SCA / Dependency Scan
+   └── Secrets Scan
+   ↓
+5. Build  
+	build dep ready for unit test to be run 
+	reuse the build venv, build when chnages in depencies
+   ↓
+6. Unit Tests
+	run unit tests 
+	create code coverage
+	add exclussions 
+	add inclussions 
+   ↓
+7. Build Docker Image
+	use the build cache
+	keep this stage should be added or not becouse most of the time not required 
+   ↓
+8. Container Security Scan
+	save reports in artifacts 
+
+   ↓
+9. Push Image to Registry
+	ask approval before puh 
+	proper taging is required 
+   ↓
+10. Deploy to Dev
+	if it is a stage branch then no need to do this 
+   ↓
+11. Integration / API Tests
+	integration tests should ran in dev branch 
+
+   ↓
+12. DAST
+   ↓
+13. Approval / Promotion
+   ↓
+14. Deploy to Staging
+   ↓
+15. Final Security + Tests
+   ↓
+16. Production Deployment
+   ↓
+17. Monitoring / Logging
+   ↓
+18. Feedback → Git
+
+
+

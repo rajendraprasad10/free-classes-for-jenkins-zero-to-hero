@@ -1,0 +1,148 @@
+day8-notes
+
+
+Parallel Stages:
+
+Jenkins allows parallel execution of multiple stages to speed up pipelines.
+
+Syntax:
+
+
+    stage('Parallel Example') {
+        parallel {
+            stage('Unit Tests') {
+                steps { sh 'pytest tests/unit' }
+            }
+            stage('Integration Tests') {
+                steps { sh 'pytest tests/integration' }
+            }
+        }
+    }
+
+Useful for running independent tasks (tests, builds, linting) simultaneously.
+
+------------------------------------------------------------------------
+
+Triggers: 
+
+Triggers define when and how pipelines run automatically.
+
+Common types:
+
+    cron → schedule builds (e.g., nightly builds).
+
+    pollSCM → check repository for changes.
+
+    upstream → trigger based on another job’s completion.
+
+Example:
+
+groovy
+
+    triggers {
+        cron('H 2 * * 1-5')   // Run at 2 AM on weekdays
+        pollSCM('H/15 * * * *') // Poll every 15 minutes
+    }
+
+
+-----------------------------------------------------------------
+
+
+Scripted Pipeline
+
+Scripted pipelines use Groovy scripting for more flexibility.
+
+Example:
+
+
+    node {
+        stage('Checkout') {
+            checkout scm
+        }
+        stage('Build') {
+            sh './gradlew build'
+        }
+    }
+
+More powerful but less declarative compared to Declarative Pipelines.
+
+
+
+------------------------------------------------------------------------
+
+
+Credentials Management:
+
+    Jenkins provides a Credentials plugin to securely store secrets.
+
+    Secret Text
+
+    Store API tokens or secret strings.
+
+Usage:
+
+groovy
+
+withCredentials([string(credentialsId: 'my-secret', variable: 'TOKEN')]) {
+    sh 'curl -H "Authorization: Bearer $TOKEN" https://api.example.com'
+}
+
+--------------------------------------------------------------
+
+
+Username/Password
+
+    Store login credentials.
+
+Usage:
+
+groovy
+
+withCredentials([usernamePassword(credentialsId: 'my-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+    sh 'echo $USER && echo $PASS'
+}
+
+----------------------------------------------------------
+
+SSH Keys
+
+    Store private keys for Git/remote server access.
+
+Usage:
+
+groovy
+
+withCredentials([sshUserPrivateKey(credentialsId: 'ssh-key', keyFileVariable: 'KEYFILE')]) {
+    sh 'ssh -i $KEYFILE user@server'
+}
+
+
+---------------------------------------------
+
+AWS Credentials
+
+Store AWS access keys.
+
+Usage:
+
+groovy
+
+withCredentials([aws(credentialsId: 'aws-creds', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+    sh 'aws s3 ls'
+}
+
+-------------------------------------------------------------
+
+Secure Secret Usage
+
+***** Never hardcode credentials in scripts or Jenkinsfiles. *****
+
+Always use withCredentials blocks.
+
+Avoid echoing secrets in logs (echo $PASS is unsafe).
+
+Use environment variables only inside secure blocks.
+
+Prefer Jenkins credentials binding over passing secrets directly to shell commands.
+
+

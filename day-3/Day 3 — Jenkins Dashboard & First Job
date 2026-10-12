@@ -1,0 +1,136 @@
+Day 3 — Jenkins Dashboard & First Job
+
+
+
+1. Jenkins Dashboard
+
+Explain the main sections students see after logging into Jenkins:
+
+Dashboard — Central place to manage Jenkins.
+
+Jobs — All Jenkins projects/jobs.
+
+Builds — History of job executions.
+
+Workspace — Directory where Jenkins performs the job's work.
+
+Console Output — Logs generated during a build.
+
+Artifacts — Files saved from a successful build.
+
+Credentials — Securely stored passwords, tokens, SSH keys, etc.
+
+Nodes — Jenkins machines/agents used to execute jobs.
+
+Plugins — Extend Jenkins functionality.
+
+
+------------------------------------------------------------------------------
+
+2. Create Your First "Hello Jenkins" Job
+
+
+Go to:
+
+	Jenkins Dashboard → New Item → Freestyle project
+
+Job name:
+
+	hello-jenkins
+
+	Select Freestyle project → OK.
+
+Under Build Steps:
+
+	Add build step → Execute shell
+
+
+	Use:
+
+		echo "Hello Jenkins!"
+		echo "Welcome to Jenkins CI/CD"
+		echo "Current user:"
+		whoami
+
+		echo "Current directory:"
+		pwd
+
+		echo "Files in workspace:"
+		ls -la
+
+
+Click Save → Build Now.
+
+-------------------------------------------------------------------------------------
+
+3. Inspect the Build
+
+	After the build completes:
+
+		hello-jenkins → Build #1 → Console Output
+
+You should see output similar to:
+
+	Hello Jenkins!
+	Welcome to Jenkins CI/CD
+	Current user:
+	jenkins
+
+Current directory:
+
+	/var/lib/jenkins/workspace/hello-jenkins
+
+Files in workspace:
+...
+	Finished: SUCCESS
+
+
+Console Output is one of the most important places for troubleshooting Jenkins builds.
+
+-------------------------------------------------------------------------------------------
+
+4. Understand the Workspace
+
+	Inside the job workspace, Jenkins executes commands and creates files.
+
+	You can demonstrate:
+
+	echo "This file was created by Jenkins" > hello.txt
+	cat hello.txt
+	ls -l
+
+
+
+--------------------------------------------------------------------------------
+
+
+
+
+5. Introduce Artifacts
+
+	Add another build step:
+
+	echo "Build completed successfully" > build-info.txt
+
+Then configure:
+
+	Post-build Actions → Archive the artifacts
+
+Artifact:
+
+	build-info.txt
+
+	Run the job again.
+
+	Now students can see:
+
+		Build #1 → Artifacts → build-info.txt
+
+Explain the difference:
+
+	Workspace → temporary working area used during the build.
+
+Artifact → file intentionally archived by Jenkins for later use/download.
+
+
+--------------------------------------------------------------------------------------------

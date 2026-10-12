@@ -1,0 +1,313 @@
+Jenkins-Snyk-SCA
+
+
+
+12. Introducing Snyk
+
+	Snyk is another security platform that can scan multiple areas of an application.
+
+It can be used for:
+
+	Open Source Dependencies
+	        ↓
+		   SCA
+		   	|
+	Container Images
+	        ↓
+	Container Security
+
+	Terraform / Kubernetes / IaC
+	        ↓
+	Infrastructure Security ----> wiz code scanning tool 
+
+	Source Code  
+	        ↓
+	Security Analysis
+
+
+A simplified view:
+
+
+                 SNYK
+                   │
+       ┌───────────┼───────────┐
+       │           │           │
+       ▼           ▼           ▼
+   Dependencies  Container     IaC
+       │           │           │
+       ▼           ▼           ▼
+      SCA       Docker       Terraform
+
+
+-------------------------------------------------------------
+
+13. Snyk Dependency Scan
+
+	For a Python project, Snyk can identify vulnerable dependencies.
+
+Example:
+
+	snyk test
+
+	For a requirements file:
+
+	snyk test --file=requirements.txt
+
+
+------------------------------------------------------------------
+
+14. Snyk Container Scan
+
+	Build the image:
+
+		docker build -t myapp:latest .
+
+
+	Then:
+
+		snyk container test myapp:latest
+
+	This checks the container image for vulnerabilities.
+
+
+----------------------------------------------------------------------
+
+15. Snyk IaC Scan
+
+For Terraform:
+
+	snyk iac test .
+
+This can identify insecure infrastructure configurations.
+
+For example:
+
+	Terraform
+	   ↓
+	AWS Security Group
+	   ↓
+	0.0.0.0/0
+	   ↓
+	Potential security issue
+
+
+Pipeline:
+
+             Git
+              │
+              ▼
+          Checkout
+              │
+              ▼
+          Unit Tests
+              │
+              ▼
+        Trivy/snyk FS Scan
+              │
+              ▼
+         Docker Build
+              │
+              ▼
+       Trivy/snyk Image Scan
+              │
+              ▼
+       Security Gate
+          /       \
+       FAIL       PASS
+        │           │
+        ▼           ▼
+       STOP       Push ---> ECR 
+                    │
+                    ▼
+                 Deploy
+
+
+Snky integration in jenkins 
+
+good documentation here please check it 
+
+
+https://docs.snyk.io/developer-tools/integrations/snyk-ci-cd-integrations/jenkins-plugin-integration-with-snyk
+
+
+
+will check with one project which is cicd-demo 
+
+
+
+
+Snky steps: 
+
+install in local 
+
+curl --compressed https://static.snyk.io/cli/latest/snyk-linux -o snyk
+chmod +x snyk
+sudo mv snyk /usr/local/bin/snyk
+
+snyk --version
+
+
+snyk auth 
+
+
+2. Create Snyk Token
+
+In your Snyk account, create an API token.
+
+Then in Jenkins:
+
+	Manage Jenkins → Credentials → Global → Add Credentials
+
+Choose:
+
+	Kind: Secret text
+	Secret: <SNYK_TOKEN>
+	ID: snyk-token
+
+Your Jenkinsfile can then access it securely.
+
+
+
+3. Snyk Dependency/SCA Scan
+
+	For a Python project:
+
+	snyk test --file=requirements.txt --severity-threshold=high
+
+
+This detects vulnerable third-party dependencies.
+
+Example:
+
+	Django
+	FastAPI
+	requests
+	urllib3
+	pydantic
+
+
+4. Add Snyk to Jenkins Pipeline
+
+
+	 stage('Snyk SCA Scan') {
+            steps {
+                withCredentials([
+                    string(
+                        credentialsId: 'snyk-token',
+                        variable: 'SNYK_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        snyk test \
+                          --file=requirements.txt \
+                          --severity-threshold=high
+                    '''
+                }
+            }
+        }
+
+
+
+ 5. Snyk Container Scanning
+
+After Docker build:
+
+	docker build -t myapp:${BUILD_NUMBER} .
+
+Run:
+
+	snyk container test myapp:${BUILD_NUMBER}
+
+To fail the Jenkins build for High/Critical vulnerabilities:
+
+	snyk container test \
+	    myapp:${BUILD_NUMBER} \
+	    --severity-threshold=high
+
+
+You can make the pipeline stricter:
+
+	--severity-threshold=critical
+
+or:
+
+	--severity-threshold=high
+
+Typical production policy:
+
+LOW       → Allow
+MEDIUM    → Allow / Review
+HIGH      → Fail
+CRITICAL  → Fail
+
+
+
+6. Snyk IaC Scanning
+
+	Snyk can also scan Terraform/Kubernetes configuration.
+
+For Terraform:
+
+	snyk iac test terraform/
+
+For Kubernetes manifests:
+
+	snyk iac test k8s/
+
+
+
+ stage('Snyk Test') {
+            steps {
+                sh '''
+                    echo "......Snyk Authunticated............"
+
+                    snyk auth $SNYK_TOKEN
+
+                    echo "Run the code scan locally"
+
+                    snyk code test --severity-threshold=high --file=requirements.txt
+                    
+                    echo "Push results to the Snyk UI with a custom project name"
+
+                    snyk monitor --file=requirements.txt --project-name=cicd-demo
+
+                ''' 
+
+            }
+        }
+
+
+
+stage('Snyk Dependency Scan') {
+            steps {
+
+                sh '''
+                    
+                    snyk auth $SNYK_TOKEN
+
+                    
+                    snyk test --file=requirements.txt --package-manager=pip --severity-threshold=high
+
+
+                    snyk monitor --file=requirements.txt --package-manager=pip --project-name=cicd-demo
+                
+                
+                '''
+                
+            }
+        }
+
+
+# 1. Authenticate
+
+snyk auth $SNYK_TOKEN
+
+# 2. Container scan (local only - won't break pipeline)
+snyk container test myapp:${BUILD_NUMBER} --severity-threshold=high || true
+
+# 3. Upload container results to Snyk UI dashboard
+snyk container monitor myapp:${BUILD_NUMBER} --project-name=cicd-demo-container || true
+
+
+snyk container monitor myapp:${BUILD_NUMBER} --project-name=cicd-demo-container --file=Dockerfile || true
+

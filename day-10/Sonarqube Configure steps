@@ -1,0 +1,92 @@
+Sonarqube Configuration steps 
+
+
+What is SAST?
+
+SAST = Static Application Security Testing
+
+It is a security testing method that scans your source code without running the application to find security vulnerabilities, coding weaknesses, and potential bugs.
+
+Think of it as:
+
+Developer writes code → SAST scans code → Finds security issues → Developer fixes them
+
+
+
+
+Static code quality for python project 
+
+add SAST in jenkins pipeline
+
+
+steps in jenkins: 
+
+	manage jenkins > plugins > available > the plugin name "SonarQube Scanner for Jenkins" 
+
+	install and restart jenkins 
+
+	manage jenkins > system > serch for sonarqube 
+		name: sonarsever
+		creds:  open sonarqube 
+				go my account 
+				security 
+				create a token 
+				then 
+				open jenkins and go to credintials 
+				globle creds
+				select secret text 
+				> give id 
+				> and paste secret text in 
+
+		url :  http://localhost:9000
+
+
+	Open tools in jenkins 
+
+	search for sonarscanner installations 
+
+	give name: sonarscaner   server and this name should match 
+
+	select version you want 
+
+	checkout: install automatically 
+
+
+===========configuration is completed ==================================
+
+include in jenkins pipeline code
+
+i took example python fastapi project 
+
+
+will add git repo in description please find out for your practice 
+
+
+
+
+run python application in locally 
+
+python3 in the server 
+
+pip 
+pipenv 
+uv 
+
+
+requiremnts.txt file there 
+
+
+venv   python virtual env 
+
+source venv/bin/activate
+
+pip install -r requiremnts.txt 
+
+
+
+
+
+
+
+
+
